@@ -5,6 +5,7 @@ package ocmv1beta1
 
 import (
 	fmt "fmt"
+	v1beta13 "github.com/cs3org/go-cs3apis/cs3/app/provider/v1beta1"
 	v1beta11 "github.com/cs3org/go-cs3apis/cs3/identity/user/v1beta1"
 	v1beta1 "github.com/cs3org/go-cs3apis/cs3/storage/provider/v1beta1"
 	v1beta12 "github.com/cs3org/go-cs3apis/cs3/types/v1beta1"
@@ -63,40 +64,41 @@ func (ShareState) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_b8b387acee7aaf43, []int{0}
 }
 
-// Defines the type of share based on its origin.
-type Share_ShareType int32
+// Defines the type of share based on its recipient.
+type ShareType int32
 
 const (
-	Share_SHARE_TYPE_INVALID Share_ShareType = 0
-	// A regular file or folder share.
-	Share_SHARE_TYPE_REGULAR Share_ShareType = 1
-	// A file or folder transfer.
-	Share_SHARE_TYPE_TRANSFER Share_ShareType = 2
+	ShareType_SHARE_TYPE_INVALID ShareType = 0
+	// Share of type user.
+	ShareType_SHARE_TYPE_USER ShareType = 1
+	// Share of type group.
+	ShareType_SHARE_TYPE_GROUP ShareType = 2
 )
 
-var Share_ShareType_name = map[int32]string{
+var ShareType_name = map[int32]string{
 	0: "SHARE_TYPE_INVALID",
-	1: "SHARE_TYPE_REGULAR",
-	2: "SHARE_TYPE_TRANSFER",
+	1: "SHARE_TYPE_USER",
+	2: "SHARE_TYPE_GROUP",
 }
 
-var Share_ShareType_value = map[string]int32{
-	"SHARE_TYPE_INVALID":  0,
-	"SHARE_TYPE_REGULAR":  1,
-	"SHARE_TYPE_TRANSFER": 2,
+var ShareType_value = map[string]int32{
+	"SHARE_TYPE_INVALID": 0,
+	"SHARE_TYPE_USER":    1,
+	"SHARE_TYPE_GROUP":   2,
 }
 
-func (x Share_ShareType) String() string {
-	return proto.EnumName(Share_ShareType_name, int32(x))
+func (x ShareType) String() string {
+	return proto.EnumName(ShareType_name, int32(x))
 }
 
-func (Share_ShareType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_b8b387acee7aaf43, []int{0, 0}
+func (ShareType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{1}
 }
 
 // Shares are relationships between a resource owner
-// (usually the authenticated user) who grants permissions to a recipient (grantee)
-// on a specified resource (resource_id). UserShares represents both user and groups.
+// (usually the authenticated user) who grants permissions to a recipient
+// (grantee) on a specified resource (resource_id). UserShares represents both
+// user and groups.
 type Share struct {
 	// REQUIRED.
 	// Opaque unique identifier of the share.
@@ -108,9 +110,8 @@ type Share struct {
 	// Name of the shared resource.
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// REQUIRED.
-	// Permissions for the grantee to use
-	// the resource.
-	Permissions *SharePermissions `protobuf:"bytes,4,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// The unlisted token to give access to the ocm share.
+	Token string `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
 	// REQUIRED.
 	// The receiver of the share, like a user, group ...
 	Grantee *v1beta1.Grantee `protobuf:"bytes,5,opt,name=grantee,proto3" json:"grantee,omitempty"`
@@ -132,11 +133,19 @@ type Share struct {
 	// REQUIRED.
 	// Last modification time of the share.
 	Mtime *v1beta12.Timestamp `protobuf:"bytes,9,opt,name=mtime,proto3" json:"mtime,omitempty"`
-	// Specifies the type of the share.
-	ShareType            Share_ShareType `protobuf:"varint,10,opt,name=share_type,json=shareType,proto3,enum=cs3.sharing.ocm.v1beta1.Share_ShareType" json:"share_type,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	// OPTIONAL.
+	// The expiration time for the ocm share.
+	Expiration *v1beta12.Timestamp `protobuf:"bytes,10,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	// REQUIRED.
+	// Recipient share type.
+	ShareType ShareType `protobuf:"varint,11,opt,name=share_type,json=shareType,proto3,enum=cs3.sharing.ocm.v1beta1.ShareType" json:"share_type,omitempty"`
+	// REQUIRED.
+	AccessMethods []*AccessMethod `protobuf:"bytes,12,rep,name=access_methods,json=accessMethods,proto3" json:"access_methods,omitempty"`
+	// OPTIONAL.
+	Opaque               *v1beta12.Opaque `protobuf:"bytes,13,opt,name=opaque,proto3" json:"opaque,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *Share) Reset()         { *m = Share{} }
@@ -185,11 +194,11 @@ func (m *Share) GetName() string {
 	return ""
 }
 
-func (m *Share) GetPermissions() *SharePermissions {
+func (m *Share) GetToken() string {
 	if m != nil {
-		return m.Permissions
+		return m.Token
 	}
-	return nil
+	return ""
 }
 
 func (m *Share) GetGrantee() *v1beta1.Grantee {
@@ -227,11 +236,32 @@ func (m *Share) GetMtime() *v1beta12.Timestamp {
 	return nil
 }
 
-func (m *Share) GetShareType() Share_ShareType {
+func (m *Share) GetExpiration() *v1beta12.Timestamp {
+	if m != nil {
+		return m.Expiration
+	}
+	return nil
+}
+
+func (m *Share) GetShareType() ShareType {
 	if m != nil {
 		return m.ShareType
 	}
-	return Share_SHARE_TYPE_INVALID
+	return ShareType_SHARE_TYPE_INVALID
+}
+
+func (m *Share) GetAccessMethods() []*AccessMethod {
+	if m != nil {
+		return m.AccessMethods
+	}
+	return nil
+}
+
+func (m *Share) GetOpaque() *v1beta12.Opaque {
+	if m != nil {
+		return m.Opaque
+	}
+	return nil
 }
 
 // The permissions for a share.
@@ -283,22 +313,52 @@ func (m *SharePermissions) GetReshare() bool {
 }
 
 // A received share is the share that a grantee will receive.
-// It expands the original share by adding state to the share,
-// a display name from the perspective of the grantee and a
-// resource mount point in case the share will be mounted
-// in a storage provider.
 type ReceivedShare struct {
 	// REQUIRED.
-	Share *Share `protobuf:"bytes,1,opt,name=share,proto3" json:"share,omitempty"`
+	// Opaque unique identifier of the share.
+	Id *ShareId `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// REQUIRED.
+	// Name of the shared resource.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// REQUIRED.
+	ResourceId *v1beta1.ResourceId `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// REQUIRED.
+	// The receiver of the share, like a user, group ...
+	Grantee *v1beta1.Grantee `protobuf:"bytes,4,opt,name=grantee,proto3" json:"grantee,omitempty"`
+	// REQUIRED.
+	// Uniquely identifies the owner of the share
+	// (the resource owner at the time of creating the share).
+	// In case the ownership of the underlying resource changes
+	// the share owner field MAY change to reflect the change of ownsership.
+	Owner *v1beta11.UserId `protobuf:"bytes,5,opt,name=owner,proto3" json:"owner,omitempty"`
+	// REQUIRED.
+	// Uniquely identifies a principal who initiates the share creation.
+	// A creator can create shares on behalf of the owner (because of re-sharing,
+	// because belonging to special groups, ...).
+	// Creator and owner often result in being the same principal.
+	Creator *v1beta11.UserId `protobuf:"bytes,6,opt,name=creator,proto3" json:"creator,omitempty"`
+	// REQUIRED.
+	// Creation time of the share.
+	Ctime *v1beta12.Timestamp `protobuf:"bytes,7,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	// REQUIRED.
+	// Last modification time of the share.
+	Mtime *v1beta12.Timestamp `protobuf:"bytes,8,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	// OPTIONAL.
+	// The expiration time for the ocm share.
+	Expiration *v1beta12.Timestamp `protobuf:"bytes,9,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	// REQUIRED.
+	// Recipient share type.
+	ShareType ShareType `protobuf:"varint,10,opt,name=share_type,json=shareType,proto3,enum=cs3.sharing.ocm.v1beta1.ShareType" json:"share_type,omitempty"`
+	// REQUIRED.
+	Protocols []*Protocol `protobuf:"bytes,11,rep,name=protocols,proto3" json:"protocols,omitempty"`
 	// REQUIRED.
 	// The state of the share.
-	State ShareState `protobuf:"varint,2,opt,name=state,proto3,enum=cs3.sharing.ocm.v1beta1.ShareState" json:"state,omitempty"`
-	// REQUIRED.
-	// The mount point of the share.
-	MountPoint           *v1beta1.Reference `protobuf:"bytes,3,opt,name=mount_point,json=mountPoint,proto3" json:"mount_point,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
-	XXX_unrecognized     []byte             `json:"-"`
-	XXX_sizecache        int32              `json:"-"`
+	State ShareState `protobuf:"varint,12,opt,name=state,proto3,enum=cs3.sharing.ocm.v1beta1.ShareState" json:"state,omitempty"`
+	// OPTIONAL.
+	Opaque               *v1beta12.Opaque `protobuf:"bytes,13,opt,name=opaque,proto3" json:"opaque,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *ReceivedShare) Reset()         { *m = ReceivedShare{} }
@@ -326,9 +386,79 @@ func (m *ReceivedShare) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ReceivedShare proto.InternalMessageInfo
 
-func (m *ReceivedShare) GetShare() *Share {
+func (m *ReceivedShare) GetId() *ShareId {
 	if m != nil {
-		return m.Share
+		return m.Id
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *ReceivedShare) GetResourceId() *v1beta1.ResourceId {
+	if m != nil {
+		return m.ResourceId
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetGrantee() *v1beta1.Grantee {
+	if m != nil {
+		return m.Grantee
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetOwner() *v1beta11.UserId {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetCreator() *v1beta11.UserId {
+	if m != nil {
+		return m.Creator
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetCtime() *v1beta12.Timestamp {
+	if m != nil {
+		return m.Ctime
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetMtime() *v1beta12.Timestamp {
+	if m != nil {
+		return m.Mtime
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetExpiration() *v1beta12.Timestamp {
+	if m != nil {
+		return m.Expiration
+	}
+	return nil
+}
+
+func (m *ReceivedShare) GetShareType() ShareType {
+	if m != nil {
+		return m.ShareType
+	}
+	return ShareType_SHARE_TYPE_INVALID
+}
+
+func (m *ReceivedShare) GetProtocols() []*Protocol {
+	if m != nil {
+		return m.Protocols
 	}
 	return nil
 }
@@ -340,9 +470,9 @@ func (m *ReceivedShare) GetState() ShareState {
 	return ShareState_SHARE_STATE_INVALID
 }
 
-func (m *ReceivedShare) GetMountPoint() *v1beta1.Reference {
+func (m *ReceivedShare) GetOpaque() *v1beta12.Opaque {
 	if m != nil {
-		return m.MountPoint
+		return m.Opaque
 	}
 	return nil
 }
@@ -362,11 +492,11 @@ func (m *ReceivedShare) GetMountPoint() *v1beta1.Reference {
 // 4) The grantee for the share = Grantee("type" = "user", "" => "Bob")
 type ShareKey struct {
 	// REQUIRED.
-	Owner *v1beta11.UserId `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Owner *v1beta11.UserId `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
 	// REQUIRED.
-	ResourceId *v1beta1.ResourceId `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceId *v1beta1.ResourceId `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// REQUIRED.
-	Grantee              *v1beta1.Grantee `protobuf:"bytes,4,opt,name=grantee,proto3" json:"grantee,omitempty"`
+	Grantee              *v1beta1.Grantee `protobuf:"bytes,3,opt,name=grantee,proto3" json:"grantee,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -425,7 +555,7 @@ type ShareId struct {
 	// The internal id used by service implementor to
 	// uniquely identity the share in the internal
 	// implementation of the service.
-	OpaqueId             string   `protobuf:"bytes,2,opt,name=opaque_id,json=opaqueId,proto3" json:"opaque_id,omitempty"`
+	OpaqueId             string   `protobuf:"bytes,1,opt,name=opaque_id,json=opaqueId,proto3" json:"opaque_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -601,9 +731,519 @@ func (m *ShareGrant) GetPermissions() *SharePermissions {
 	return nil
 }
 
+// The protocol which is used to establish synchronisation.
+type Protocol struct {
+	// REQUIRED.
+	// One of the protocols MUST be specified.
+	//
+	// Types that are valid to be assigned to Term:
+	//	*Protocol_WebdavOptions
+	//	*Protocol_WebappOptions
+	//	*Protocol_TransferOptions
+	//	*Protocol_GenericOptions
+	Term                 isProtocol_Term `protobuf_oneof:"term"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *Protocol) Reset()         { *m = Protocol{} }
+func (m *Protocol) String() string { return proto.CompactTextString(m) }
+func (*Protocol) ProtoMessage()    {}
+func (*Protocol) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{7}
+}
+
+func (m *Protocol) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Protocol.Unmarshal(m, b)
+}
+func (m *Protocol) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Protocol.Marshal(b, m, deterministic)
+}
+func (m *Protocol) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Protocol.Merge(m, src)
+}
+func (m *Protocol) XXX_Size() int {
+	return xxx_messageInfo_Protocol.Size(m)
+}
+func (m *Protocol) XXX_DiscardUnknown() {
+	xxx_messageInfo_Protocol.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Protocol proto.InternalMessageInfo
+
+type isProtocol_Term interface {
+	isProtocol_Term()
+}
+
+type Protocol_WebdavOptions struct {
+	WebdavOptions *WebDAVProtocol `protobuf:"bytes,1,opt,name=webdav_options,json=webdavOptions,proto3,oneof"`
+}
+
+type Protocol_WebappOptions struct {
+	WebappOptions *WebappProtocol `protobuf:"bytes,2,opt,name=webapp_options,json=webappOptions,proto3,oneof"`
+}
+
+type Protocol_TransferOptions struct {
+	TransferOptions *TransferProtocol `protobuf:"bytes,3,opt,name=transfer_options,json=transferOptions,proto3,oneof"`
+}
+
+type Protocol_GenericOptions struct {
+	GenericOptions *v1beta12.Opaque `protobuf:"bytes,4,opt,name=generic_options,json=genericOptions,proto3,oneof"`
+}
+
+func (*Protocol_WebdavOptions) isProtocol_Term() {}
+
+func (*Protocol_WebappOptions) isProtocol_Term() {}
+
+func (*Protocol_TransferOptions) isProtocol_Term() {}
+
+func (*Protocol_GenericOptions) isProtocol_Term() {}
+
+func (m *Protocol) GetTerm() isProtocol_Term {
+	if m != nil {
+		return m.Term
+	}
+	return nil
+}
+
+func (m *Protocol) GetWebdavOptions() *WebDAVProtocol {
+	if x, ok := m.GetTerm().(*Protocol_WebdavOptions); ok {
+		return x.WebdavOptions
+	}
+	return nil
+}
+
+func (m *Protocol) GetWebappOptions() *WebappProtocol {
+	if x, ok := m.GetTerm().(*Protocol_WebappOptions); ok {
+		return x.WebappOptions
+	}
+	return nil
+}
+
+func (m *Protocol) GetTransferOptions() *TransferProtocol {
+	if x, ok := m.GetTerm().(*Protocol_TransferOptions); ok {
+		return x.TransferOptions
+	}
+	return nil
+}
+
+func (m *Protocol) GetGenericOptions() *v1beta12.Opaque {
+	if x, ok := m.GetTerm().(*Protocol_GenericOptions); ok {
+		return x.GenericOptions
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Protocol) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*Protocol_WebdavOptions)(nil),
+		(*Protocol_WebappOptions)(nil),
+		(*Protocol_TransferOptions)(nil),
+		(*Protocol_GenericOptions)(nil),
+	}
+}
+
+// Defines the options for the WebDAV protocol.
+type WebDAVProtocol struct {
+	// REQUIRED.
+	// Secret used to access the resource.
+	SharedSecret string `protobuf:"bytes,1,opt,name=shared_secret,json=sharedSecret,proto3" json:"shared_secret,omitempty"`
+	// REQUIRED.
+	// Permissions of the shared resource.
+	Permissions *SharePermissions `protobuf:"bytes,2,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// REQUIRED.
+	// WebDAV URI used to access the resource.
+	Uri                  string   `protobuf:"bytes,3,opt,name=uri,proto3" json:"uri,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WebDAVProtocol) Reset()         { *m = WebDAVProtocol{} }
+func (m *WebDAVProtocol) String() string { return proto.CompactTextString(m) }
+func (*WebDAVProtocol) ProtoMessage()    {}
+func (*WebDAVProtocol) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{8}
+}
+
+func (m *WebDAVProtocol) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebDAVProtocol.Unmarshal(m, b)
+}
+func (m *WebDAVProtocol) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebDAVProtocol.Marshal(b, m, deterministic)
+}
+func (m *WebDAVProtocol) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebDAVProtocol.Merge(m, src)
+}
+func (m *WebDAVProtocol) XXX_Size() int {
+	return xxx_messageInfo_WebDAVProtocol.Size(m)
+}
+func (m *WebDAVProtocol) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebDAVProtocol.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebDAVProtocol proto.InternalMessageInfo
+
+func (m *WebDAVProtocol) GetSharedSecret() string {
+	if m != nil {
+		return m.SharedSecret
+	}
+	return ""
+}
+
+func (m *WebDAVProtocol) GetPermissions() *SharePermissions {
+	if m != nil {
+		return m.Permissions
+	}
+	return nil
+}
+
+func (m *WebDAVProtocol) GetUri() string {
+	if m != nil {
+		return m.Uri
+	}
+	return ""
+}
+
+// Defines the options for the Webapp protocol.
+type WebappProtocol struct {
+	// REQUIRED.
+	// Template URI to open the resource with a remote app.
+	UriTemplate          string   `protobuf:"bytes,1,opt,name=uri_template,json=uriTemplate,proto3" json:"uri_template,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WebappProtocol) Reset()         { *m = WebappProtocol{} }
+func (m *WebappProtocol) String() string { return proto.CompactTextString(m) }
+func (*WebappProtocol) ProtoMessage()    {}
+func (*WebappProtocol) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{9}
+}
+
+func (m *WebappProtocol) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebappProtocol.Unmarshal(m, b)
+}
+func (m *WebappProtocol) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebappProtocol.Marshal(b, m, deterministic)
+}
+func (m *WebappProtocol) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebappProtocol.Merge(m, src)
+}
+func (m *WebappProtocol) XXX_Size() int {
+	return xxx_messageInfo_WebappProtocol.Size(m)
+}
+func (m *WebappProtocol) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebappProtocol.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebappProtocol proto.InternalMessageInfo
+
+func (m *WebappProtocol) GetUriTemplate() string {
+	if m != nil {
+		return m.UriTemplate
+	}
+	return ""
+}
+
+// Defines the options for the Transfer protocol.
+type TransferProtocol struct {
+	// REQUIRED.
+	// Secret used to access the source of the data transfer.
+	SharedSecret string `protobuf:"bytes,1,opt,name=shared_secret,json=sharedSecret,proto3" json:"shared_secret,omitempty"`
+	// REQUIRED.
+	// Source URI for the data transfer.
+	SourceUri string `protobuf:"bytes,2,opt,name=source_uri,json=sourceUri,proto3" json:"source_uri,omitempty"`
+	// REQUIRED.
+	// Size in bytes of the source.
+	Size                 uint64   `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TransferProtocol) Reset()         { *m = TransferProtocol{} }
+func (m *TransferProtocol) String() string { return proto.CompactTextString(m) }
+func (*TransferProtocol) ProtoMessage()    {}
+func (*TransferProtocol) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{10}
+}
+
+func (m *TransferProtocol) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TransferProtocol.Unmarshal(m, b)
+}
+func (m *TransferProtocol) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TransferProtocol.Marshal(b, m, deterministic)
+}
+func (m *TransferProtocol) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TransferProtocol.Merge(m, src)
+}
+func (m *TransferProtocol) XXX_Size() int {
+	return xxx_messageInfo_TransferProtocol.Size(m)
+}
+func (m *TransferProtocol) XXX_DiscardUnknown() {
+	xxx_messageInfo_TransferProtocol.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TransferProtocol proto.InternalMessageInfo
+
+func (m *TransferProtocol) GetSharedSecret() string {
+	if m != nil {
+		return m.SharedSecret
+	}
+	return ""
+}
+
+func (m *TransferProtocol) GetSourceUri() string {
+	if m != nil {
+		return m.SourceUri
+	}
+	return ""
+}
+
+func (m *TransferProtocol) GetSize() uint64 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
+
+// Defines how the recipient accesses the share.
+type AccessMethod struct {
+	// REQUIRED.
+	// One of the access method MUST be specified.
+	//
+	// Types that are valid to be assigned to Term:
+	//	*AccessMethod_WebdavOptions
+	//	*AccessMethod_WebappOptions
+	//	*AccessMethod_TransferOptions
+	//	*AccessMethod_GenericOptions
+	Term                 isAccessMethod_Term `protobuf_oneof:"term"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
+}
+
+func (m *AccessMethod) Reset()         { *m = AccessMethod{} }
+func (m *AccessMethod) String() string { return proto.CompactTextString(m) }
+func (*AccessMethod) ProtoMessage()    {}
+func (*AccessMethod) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{11}
+}
+
+func (m *AccessMethod) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AccessMethod.Unmarshal(m, b)
+}
+func (m *AccessMethod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AccessMethod.Marshal(b, m, deterministic)
+}
+func (m *AccessMethod) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AccessMethod.Merge(m, src)
+}
+func (m *AccessMethod) XXX_Size() int {
+	return xxx_messageInfo_AccessMethod.Size(m)
+}
+func (m *AccessMethod) XXX_DiscardUnknown() {
+	xxx_messageInfo_AccessMethod.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AccessMethod proto.InternalMessageInfo
+
+type isAccessMethod_Term interface {
+	isAccessMethod_Term()
+}
+
+type AccessMethod_WebdavOptions struct {
+	WebdavOptions *WebDAVAccessMethod `protobuf:"bytes,1,opt,name=webdav_options,json=webdavOptions,proto3,oneof"`
+}
+
+type AccessMethod_WebappOptions struct {
+	WebappOptions *WebappAccessMethod `protobuf:"bytes,2,opt,name=webapp_options,json=webappOptions,proto3,oneof"`
+}
+
+type AccessMethod_TransferOptions struct {
+	TransferOptions *TransferAccessMethod `protobuf:"bytes,3,opt,name=transfer_options,json=transferOptions,proto3,oneof"`
+}
+
+type AccessMethod_GenericOptions struct {
+	GenericOptions *v1beta12.Opaque `protobuf:"bytes,4,opt,name=generic_options,json=genericOptions,proto3,oneof"`
+}
+
+func (*AccessMethod_WebdavOptions) isAccessMethod_Term() {}
+
+func (*AccessMethod_WebappOptions) isAccessMethod_Term() {}
+
+func (*AccessMethod_TransferOptions) isAccessMethod_Term() {}
+
+func (*AccessMethod_GenericOptions) isAccessMethod_Term() {}
+
+func (m *AccessMethod) GetTerm() isAccessMethod_Term {
+	if m != nil {
+		return m.Term
+	}
+	return nil
+}
+
+func (m *AccessMethod) GetWebdavOptions() *WebDAVAccessMethod {
+	if x, ok := m.GetTerm().(*AccessMethod_WebdavOptions); ok {
+		return x.WebdavOptions
+	}
+	return nil
+}
+
+func (m *AccessMethod) GetWebappOptions() *WebappAccessMethod {
+	if x, ok := m.GetTerm().(*AccessMethod_WebappOptions); ok {
+		return x.WebappOptions
+	}
+	return nil
+}
+
+func (m *AccessMethod) GetTransferOptions() *TransferAccessMethod {
+	if x, ok := m.GetTerm().(*AccessMethod_TransferOptions); ok {
+		return x.TransferOptions
+	}
+	return nil
+}
+
+func (m *AccessMethod) GetGenericOptions() *v1beta12.Opaque {
+	if x, ok := m.GetTerm().(*AccessMethod_GenericOptions); ok {
+		return x.GenericOptions
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*AccessMethod) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*AccessMethod_WebdavOptions)(nil),
+		(*AccessMethod_WebappOptions)(nil),
+		(*AccessMethod_TransferOptions)(nil),
+		(*AccessMethod_GenericOptions)(nil),
+	}
+}
+
+// Defines the options for the WebDAV access method.
+type WebDAVAccessMethod struct {
+	// REQUIRED.
+	// The permissions for the share.
+	Permissions          *v1beta1.ResourcePermissions `protobuf:"bytes,2,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
+}
+
+func (m *WebDAVAccessMethod) Reset()         { *m = WebDAVAccessMethod{} }
+func (m *WebDAVAccessMethod) String() string { return proto.CompactTextString(m) }
+func (*WebDAVAccessMethod) ProtoMessage()    {}
+func (*WebDAVAccessMethod) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{12}
+}
+
+func (m *WebDAVAccessMethod) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebDAVAccessMethod.Unmarshal(m, b)
+}
+func (m *WebDAVAccessMethod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebDAVAccessMethod.Marshal(b, m, deterministic)
+}
+func (m *WebDAVAccessMethod) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebDAVAccessMethod.Merge(m, src)
+}
+func (m *WebDAVAccessMethod) XXX_Size() int {
+	return xxx_messageInfo_WebDAVAccessMethod.Size(m)
+}
+func (m *WebDAVAccessMethod) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebDAVAccessMethod.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebDAVAccessMethod proto.InternalMessageInfo
+
+func (m *WebDAVAccessMethod) GetPermissions() *v1beta1.ResourcePermissions {
+	if m != nil {
+		return m.Permissions
+	}
+	return nil
+}
+
+// Defines the options for the Webapp access method.
+type WebappAccessMethod struct {
+	// REQUIRED.
+	// The view mode for the share.
+	ViewMode             v1beta13.ViewMode `protobuf:"varint,2,opt,name=view_mode,json=viewMode,proto3,enum=cs3.app.provider.v1beta1.ViewMode" json:"view_mode,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *WebappAccessMethod) Reset()         { *m = WebappAccessMethod{} }
+func (m *WebappAccessMethod) String() string { return proto.CompactTextString(m) }
+func (*WebappAccessMethod) ProtoMessage()    {}
+func (*WebappAccessMethod) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{13}
+}
+
+func (m *WebappAccessMethod) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebappAccessMethod.Unmarshal(m, b)
+}
+func (m *WebappAccessMethod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebappAccessMethod.Marshal(b, m, deterministic)
+}
+func (m *WebappAccessMethod) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebappAccessMethod.Merge(m, src)
+}
+func (m *WebappAccessMethod) XXX_Size() int {
+	return xxx_messageInfo_WebappAccessMethod.Size(m)
+}
+func (m *WebappAccessMethod) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebappAccessMethod.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebappAccessMethod proto.InternalMessageInfo
+
+func (m *WebappAccessMethod) GetViewMode() v1beta13.ViewMode {
+	if m != nil {
+		return m.ViewMode
+	}
+	return v1beta13.ViewMode_VIEW_MODE_INVALID
+}
+
+// Defines the options for the Transfer access method.
+type TransferAccessMethod struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TransferAccessMethod) Reset()         { *m = TransferAccessMethod{} }
+func (m *TransferAccessMethod) String() string { return proto.CompactTextString(m) }
+func (*TransferAccessMethod) ProtoMessage()    {}
+func (*TransferAccessMethod) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b8b387acee7aaf43, []int{14}
+}
+
+func (m *TransferAccessMethod) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TransferAccessMethod.Unmarshal(m, b)
+}
+func (m *TransferAccessMethod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TransferAccessMethod.Marshal(b, m, deterministic)
+}
+func (m *TransferAccessMethod) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TransferAccessMethod.Merge(m, src)
+}
+func (m *TransferAccessMethod) XXX_Size() int {
+	return xxx_messageInfo_TransferAccessMethod.Size(m)
+}
+func (m *TransferAccessMethod) XXX_DiscardUnknown() {
+	xxx_messageInfo_TransferAccessMethod.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TransferAccessMethod proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterEnum("cs3.sharing.ocm.v1beta1.ShareState", ShareState_name, ShareState_value)
-	proto.RegisterEnum("cs3.sharing.ocm.v1beta1.Share_ShareType", Share_ShareType_name, Share_ShareType_value)
+	proto.RegisterEnum("cs3.sharing.ocm.v1beta1.ShareType", ShareType_name, ShareType_value)
 	proto.RegisterType((*Share)(nil), "cs3.sharing.ocm.v1beta1.Share")
 	proto.RegisterType((*SharePermissions)(nil), "cs3.sharing.ocm.v1beta1.SharePermissions")
 	proto.RegisterType((*ReceivedShare)(nil), "cs3.sharing.ocm.v1beta1.ReceivedShare")
@@ -611,6 +1251,14 @@ func init() {
 	proto.RegisterType((*ShareId)(nil), "cs3.sharing.ocm.v1beta1.ShareId")
 	proto.RegisterType((*ShareReference)(nil), "cs3.sharing.ocm.v1beta1.ShareReference")
 	proto.RegisterType((*ShareGrant)(nil), "cs3.sharing.ocm.v1beta1.ShareGrant")
+	proto.RegisterType((*Protocol)(nil), "cs3.sharing.ocm.v1beta1.Protocol")
+	proto.RegisterType((*WebDAVProtocol)(nil), "cs3.sharing.ocm.v1beta1.WebDAVProtocol")
+	proto.RegisterType((*WebappProtocol)(nil), "cs3.sharing.ocm.v1beta1.WebappProtocol")
+	proto.RegisterType((*TransferProtocol)(nil), "cs3.sharing.ocm.v1beta1.TransferProtocol")
+	proto.RegisterType((*AccessMethod)(nil), "cs3.sharing.ocm.v1beta1.AccessMethod")
+	proto.RegisterType((*WebDAVAccessMethod)(nil), "cs3.sharing.ocm.v1beta1.WebDAVAccessMethod")
+	proto.RegisterType((*WebappAccessMethod)(nil), "cs3.sharing.ocm.v1beta1.WebappAccessMethod")
+	proto.RegisterType((*TransferAccessMethod)(nil), "cs3.sharing.ocm.v1beta1.TransferAccessMethod")
 }
 
 func init() {
@@ -618,53 +1266,78 @@ func init() {
 }
 
 var fileDescriptor_b8b387acee7aaf43 = []byte{
-	// 759 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0xcd, 0x6e, 0xda, 0x4a,
-	0x14, 0xc7, 0x63, 0x03, 0x01, 0x0e, 0xba, 0x08, 0xcd, 0xbd, 0xba, 0xb1, 0x92, 0x7b, 0x2b, 0xea,
-	0xaa, 0x0d, 0xa9, 0x2a, 0x53, 0xa0, 0x55, 0x55, 0x75, 0x51, 0x01, 0x71, 0xc1, 0x4d, 0x44, 0xd0,
-	0xe0, 0x44, 0x6a, 0x15, 0x09, 0x39, 0xf6, 0x34, 0xb1, 0x2a, 0x7f, 0x74, 0xc6, 0xa4, 0x62, 0x59,
-	0xf5, 0x2d, 0xba, 0x6c, 0x77, 0x7d, 0x94, 0x6c, 0xfa, 0x4a, 0x95, 0x67, 0x6c, 0x42, 0x90, 0xa0,
-	0xf9, 0xd8, 0xa0, 0x61, 0xce, 0xff, 0x77, 0xe6, 0xcc, 0x9c, 0x0f, 0xc3, 0xb6, 0xcd, 0x5a, 0x75,
-	0x76, 0x66, 0x51, 0xd7, 0x3f, 0xad, 0x07, 0xb6, 0x57, 0x3f, 0x6f, 0x9c, 0x90, 0xc8, 0x6a, 0xd4,
-	0x29, 0x61, 0xc1, 0x84, 0xda, 0x84, 0x69, 0x21, 0x0d, 0xa2, 0x00, 0x6d, 0xd8, 0xac, 0xa5, 0x25,
-	0x42, 0x2d, 0xb0, 0x3d, 0x2d, 0x11, 0x6e, 0xee, 0xc4, 0x1e, 0x5c, 0x87, 0xf8, 0x91, 0x1b, 0x4d,
-	0xeb, 0x13, 0x46, 0xe8, 0x32, 0x1f, 0x9b, 0x4f, 0xf8, 0x61, 0x51, 0x40, 0xad, 0x53, 0x52, 0x0f,
-	0x69, 0x70, 0xee, 0x3a, 0x2b, 0xd4, 0xff, 0xc7, 0xea, 0x68, 0x1a, 0x12, 0x36, 0x93, 0xf0, 0x7f,
-	0xc2, 0xac, 0xfe, 0xc8, 0x41, 0x6e, 0x74, 0x66, 0x51, 0x82, 0x9e, 0x82, 0xec, 0x3a, 0x8a, 0x54,
-	0x95, 0x6a, 0xa5, 0x66, 0x55, 0x5b, 0x12, 0xa7, 0xc6, 0xb5, 0x86, 0x83, 0x65, 0xd7, 0x41, 0x06,
-	0x94, 0xd2, 0xd3, 0xc6, 0xae, 0xa3, 0xc8, 0x1c, 0xad, 0x09, 0x54, 0x84, 0xa7, 0xa5, 0xe1, 0xcd,
-	0x78, 0x9c, 0x00, 0x86, 0x83, 0x81, 0xce, 0xd6, 0x08, 0x41, 0xd6, 0xb7, 0x3c, 0xa2, 0x64, 0xaa,
-	0x52, 0xad, 0x88, 0xf9, 0x1a, 0xed, 0x41, 0x29, 0x24, 0xd4, 0x73, 0x19, 0x73, 0x03, 0x9f, 0x29,
-	0x59, 0xee, 0x7e, 0x67, 0x75, 0x64, 0xc3, 0x4b, 0x00, 0xcf, 0xd3, 0xe8, 0x35, 0xe4, 0x4f, 0xa9,
-	0xe5, 0x47, 0x84, 0x28, 0x39, 0xee, 0xe8, 0xe1, 0xea, 0x38, 0x7b, 0x42, 0x8c, 0x53, 0x0a, 0xbd,
-	0x80, 0x5c, 0xf0, 0xd9, 0x27, 0x54, 0x59, 0xe7, 0xf8, 0x7d, 0x8e, 0xa7, 0x09, 0xd3, 0xe2, 0x84,
-	0xcd, 0xd8, 0x43, 0x46, 0xa8, 0xe1, 0x60, 0xa1, 0x47, 0xaf, 0x20, 0x6f, 0x53, 0x62, 0x45, 0x01,
-	0x55, 0xf2, 0xd7, 0x45, 0x53, 0x02, 0x35, 0x21, 0x67, 0x47, 0xae, 0x47, 0x94, 0x02, 0x47, 0xff,
-	0xe3, 0xa8, 0xc8, 0x5f, 0x8a, 0x98, 0xae, 0x47, 0x58, 0x64, 0x79, 0x21, 0x16, 0xd2, 0x98, 0xf1,
-	0x38, 0x53, 0xbc, 0x0e, 0xc3, 0xa5, 0xa8, 0x07, 0x10, 0xbf, 0x29, 0x19, 0xc7, 0x3a, 0x05, 0xaa,
-	0x52, 0xad, 0x9c, 0x66, 0x72, 0xd9, 0x53, 0x8b, 0x5f, 0x73, 0x1a, 0x12, 0x5c, 0x64, 0xe9, 0x52,
-	0x35, 0xa1, 0x38, 0xdb, 0x47, 0xff, 0x02, 0x1a, 0xf5, 0xdb, 0x58, 0x1f, 0x9b, 0xef, 0x86, 0xfa,
-	0xd8, 0x18, 0x1c, 0xb5, 0xf7, 0x8d, 0xdd, 0xca, 0xda, 0xc2, 0x3e, 0xd6, 0x7b, 0x87, 0xfb, 0x6d,
-	0x5c, 0x91, 0xd0, 0x06, 0xfc, 0x3d, 0xb7, 0x6f, 0xe2, 0xf6, 0x60, 0xf4, 0x46, 0xc7, 0x15, 0x59,
-	0xfd, 0x22, 0x41, 0x65, 0x31, 0xbf, 0x68, 0x74, 0xb5, 0x3e, 0x44, 0xe5, 0x36, 0xae, 0x57, 0x7e,
-	0x4b, 0xeb, 0x44, 0x81, 0x3c, 0x25, 0xfc, 0x3a, 0xbc, 0x9e, 0x0b, 0x38, 0xfd, 0xab, 0x5e, 0x48,
-	0xf0, 0x17, 0x26, 0x36, 0x71, 0xcf, 0x89, 0x23, 0x3a, 0xe6, 0x19, 0xe4, 0x84, 0x52, 0x1c, 0x7d,
-	0x6f, 0xf5, 0x7b, 0x61, 0x21, 0x46, 0x2f, 0x21, 0xc7, 0x22, 0x2b, 0x12, 0xfe, 0xcb, 0xcd, 0x07,
-	0xab, 0xa9, 0x51, 0x2c, 0xc5, 0x82, 0x40, 0x7d, 0x28, 0x79, 0xc1, 0xc4, 0x8f, 0xc6, 0x61, 0xe0,
-	0xfa, 0x11, 0x6f, 0x96, 0x52, 0x73, 0xfb, 0x4f, 0x37, 0xfe, 0x40, 0x28, 0xf1, 0x6d, 0x82, 0x81,
-	0xb3, 0xc3, 0x18, 0x55, 0x7f, 0x49, 0x50, 0xe0, 0xfe, 0xf7, 0xc8, 0xf4, 0xb2, 0xb4, 0xe5, 0x1b,
-	0x96, 0xf6, 0xc2, 0x00, 0xc8, 0xdc, 0x61, 0x00, 0xcc, 0xf5, 0x67, 0xf6, 0x36, 0xfd, 0xa9, 0x3e,
-	0x82, 0x7c, 0x32, 0x9b, 0xd0, 0x16, 0x14, 0x83, 0xd0, 0xfa, 0x34, 0x99, 0x4d, 0xa5, 0x22, 0x2e,
-	0x88, 0x0d, 0xc3, 0x51, 0xbf, 0x4a, 0x50, 0x16, 0xf9, 0x48, 0x1f, 0x06, 0x35, 0x6f, 0x32, 0xf9,
-	0xfa, 0x6b, 0x7c, 0xf6, 0x3d, 0x87, 0xcc, 0x47, 0x32, 0xbd, 0xf2, 0x62, 0x4b, 0xa1, 0x3d, 0x32,
-	0xed, 0xaf, 0xe1, 0x58, 0xdf, 0x59, 0x87, 0x2c, 0x0b, 0x89, 0xad, 0x7e, 0x93, 0x00, 0xb8, 0x8d,
-	0xdf, 0x63, 0xfe, 0xf6, 0xd2, 0xad, 0xa6, 0xd3, 0xc2, 0xac, 0x94, 0xef, 0x32, 0x2b, 0x1f, 0xd3,
-	0x24, 0x36, 0x5e, 0x7b, 0x97, 0x4d, 0x39, 0x32, 0xdb, 0xe6, 0x7c, 0x17, 0x2f, 0x18, 0x86, 0xfa,
-	0x60, 0xd7, 0x18, 0xf4, 0x2a, 0x12, 0x52, 0xe0, 0x9f, 0x79, 0x43, 0xbb, 0xdb, 0xd5, 0x87, 0xa6,
-	0xbe, 0x5b, 0x91, 0x17, 0x2d, 0x58, 0x7f, 0xab, 0x77, 0x63, 0x4b, 0xa6, 0x33, 0x81, 0x2d, 0x3b,
-	0xf0, 0x96, 0x05, 0xdc, 0x29, 0xa7, 0x65, 0xc3, 0x86, 0xf1, 0x67, 0x6b, 0x28, 0xbd, 0x87, 0xc0,
-	0xf6, 0x12, 0xeb, 0x77, 0x39, 0xd3, 0x1d, 0x1d, 0xfc, 0x94, 0x37, 0xba, 0xac, 0xc5, 0xaf, 0x16,
-	0xd3, 0x07, 0xb6, 0xa7, 0x1d, 0x35, 0x3a, 0xb1, 0xfd, 0x82, 0x5b, 0x8e, 0x13, 0xcb, 0xf1, 0x81,
-	0xed, 0x1d, 0x27, 0x96, 0x93, 0x75, 0xfe, 0x15, 0x6c, 0xfd, 0x0e, 0x00, 0x00, 0xff, 0xff, 0xcb,
-	0xf0, 0x8f, 0x6e, 0xc1, 0x07, 0x00, 0x00,
+	// 1167 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0xdf, 0x4e, 0x1b, 0xc7,
+	0x1b, 0x65, 0xd7, 0x36, 0xb6, 0x3f, 0x83, 0x63, 0x4d, 0x50, 0xd8, 0x5f, 0xf2, 0x8b, 0x04, 0x1b,
+	0xb5, 0x21, 0x49, 0x6b, 0x17, 0x50, 0x55, 0x55, 0xad, 0x14, 0x19, 0xb0, 0xc0, 0x25, 0xc1, 0xd6,
+	0xd8, 0x50, 0x35, 0x42, 0xb2, 0x96, 0xdd, 0x2f, 0x30, 0x4d, 0xd6, 0xbb, 0x9d, 0x59, 0x9b, 0xba,
+	0x77, 0x55, 0x5f, 0xa1, 0x57, 0xbd, 0xec, 0x65, 0x1f, 0xa5, 0x37, 0xb9, 0xe9, 0x23, 0xf4, 0xbe,
+	0xaf, 0x50, 0xed, 0xec, 0xac, 0xd9, 0x18, 0x6c, 0x13, 0x43, 0xef, 0x76, 0xe7, 0x3b, 0xe7, 0xcc,
+	0xbf, 0x73, 0x66, 0x06, 0x1e, 0xdb, 0x62, 0xb3, 0x22, 0xce, 0x2c, 0xce, 0xba, 0xa7, 0x15, 0xcf,
+	0x76, 0x2b, 0xfd, 0xf5, 0x13, 0x0c, 0xac, 0xf5, 0x0a, 0x47, 0xe1, 0xf5, 0xb8, 0x8d, 0xa2, 0xec,
+	0x73, 0x2f, 0xf0, 0xc8, 0xb2, 0x2d, 0x36, 0xcb, 0x0a, 0x58, 0xf6, 0x6c, 0xb7, 0xac, 0x80, 0xf7,
+	0x9f, 0x84, 0x0a, 0xcc, 0xc1, 0x6e, 0xc0, 0x82, 0x41, 0xa5, 0x27, 0x90, 0x8f, 0xd3, 0xb8, 0xff,
+	0x89, 0xec, 0x2c, 0xf0, 0xb8, 0x75, 0x8a, 0x15, 0x9f, 0x7b, 0x7d, 0xe6, 0x4c, 0x40, 0x3f, 0x0c,
+	0xd1, 0xc1, 0xc0, 0x47, 0x31, 0x84, 0xc8, 0x3f, 0x55, 0x5e, 0x0b, 0xcb, 0x96, 0xef, 0x4f, 0x15,
+	0x32, 0xdf, 0x65, 0x20, 0xd3, 0x3a, 0xb3, 0x38, 0x92, 0xcf, 0x40, 0x67, 0x8e, 0xa1, 0xad, 0x68,
+	0x6b, 0x85, 0x8d, 0x95, 0xf2, 0x98, 0x19, 0x95, 0x25, 0xb6, 0xee, 0x50, 0x9d, 0x39, 0xa4, 0x0e,
+	0x85, 0x58, 0xae, 0xc3, 0x1c, 0x43, 0x97, 0xd4, 0xb5, 0x88, 0x1a, 0x4d, 0xa4, 0x1c, 0xf7, 0x3f,
+	0xe4, 0x53, 0x45, 0xa8, 0x3b, 0x14, 0xf8, 0xf0, 0x9b, 0x10, 0x48, 0x77, 0x2d, 0x17, 0x8d, 0xd4,
+	0x8a, 0xb6, 0x96, 0xa7, 0xf2, 0x9b, 0x2c, 0x41, 0x26, 0xf0, 0xde, 0x60, 0xd7, 0x48, 0xcb, 0xc6,
+	0xe8, 0x87, 0x3c, 0x87, 0xec, 0x29, 0xb7, 0xba, 0x01, 0xa2, 0x91, 0x91, 0x1d, 0x7e, 0x34, 0xb9,
+	0xc3, 0xdd, 0x08, 0x4c, 0x63, 0x16, 0xf9, 0x02, 0x32, 0xde, 0x79, 0x17, 0xb9, 0x31, 0x2f, 0xe9,
+	0xab, 0x92, 0x1e, 0xef, 0x51, 0x39, 0xdc, 0xa3, 0x21, 0xf7, 0x50, 0x20, 0xaf, 0x3b, 0x34, 0xc2,
+	0x93, 0xaf, 0x20, 0x6b, 0x73, 0xb4, 0x02, 0x8f, 0x1b, 0xd9, 0xeb, 0x52, 0x63, 0x06, 0xd9, 0x80,
+	0x8c, 0x1d, 0x30, 0x17, 0x8d, 0x9c, 0xa4, 0xfe, 0x5f, 0x52, 0xa3, 0x2d, 0x8b, 0x29, 0x6d, 0xe6,
+	0xa2, 0x08, 0x2c, 0xd7, 0xa7, 0x11, 0x34, 0xe4, 0xb8, 0x92, 0x93, 0xbf, 0x0e, 0x47, 0x42, 0xc9,
+	0xd7, 0x00, 0xf8, 0xa3, 0xcf, 0xb8, 0x15, 0x30, 0xaf, 0x6b, 0xc0, 0x35, 0x88, 0x09, 0x3c, 0xa9,
+	0x02, 0x84, 0x9b, 0x8e, 0x9d, 0x10, 0x6c, 0x14, 0x56, 0xb4, 0xb5, 0xe2, 0x86, 0x39, 0xd9, 0x0b,
+	0xed, 0x81, 0x8f, 0x34, 0x2f, 0xe2, 0x4f, 0xf2, 0x02, 0x8a, 0x96, 0x6d, 0xa3, 0x10, 0x1d, 0x17,
+	0x83, 0x33, 0xcf, 0x11, 0xc6, 0xc2, 0x4a, 0xea, 0x62, 0x9b, 0xae, 0x90, 0xa9, 0x4a, 0xf8, 0x4b,
+	0x89, 0xa6, 0x8b, 0x56, 0xe2, 0x4f, 0x90, 0x75, 0x98, 0xf7, 0x7c, 0xeb, 0x87, 0x1e, 0x1a, 0x8b,
+	0x72, 0x2a, 0xff, 0xbb, 0x62, 0x2a, 0x0d, 0x09, 0xa0, 0x0a, 0x68, 0xfe, 0xac, 0x41, 0x49, 0x8e,
+	0xac, 0x89, 0xdc, 0x65, 0x42, 0x30, 0xaf, 0x2b, 0x48, 0x0b, 0x0a, 0xfe, 0xc5, 0xaf, 0x72, 0xf9,
+	0xfa, 0xf5, 0xac, 0x9a, 0xd0, 0xa1, 0x49, 0x15, 0x62, 0x40, 0x96, 0xa3, 0x9c, 0xb9, 0xf4, 0x7e,
+	0x8e, 0xc6, 0xbf, 0xe6, 0x3f, 0x19, 0x58, 0xa4, 0x68, 0x23, 0xeb, 0xa3, 0x33, 0x6b, 0xba, 0xe2,
+	0x48, 0xe8, 0x89, 0x48, 0x8c, 0x24, 0x2e, 0x75, 0x83, 0xc4, 0x25, 0x72, 0x94, 0xbe, 0x59, 0x8e,
+	0x32, 0xb3, 0xe7, 0x68, 0x7e, 0xf6, 0x1c, 0x65, 0x67, 0xc8, 0x51, 0x6e, 0xd6, 0x1c, 0xe5, 0x6f,
+	0x94, 0x23, 0x98, 0x25, 0x47, 0xcf, 0x21, 0x2f, 0x4f, 0x68, 0xdb, 0x7b, 0x2b, 0x8c, 0x82, 0x8c,
+	0xd0, 0xea, 0x58, 0x85, 0xa6, 0x42, 0xd2, 0x0b, 0x0e, 0xf9, 0x12, 0x32, 0x22, 0xb0, 0x02, 0x34,
+	0x16, 0x64, 0xf7, 0x8f, 0x26, 0x77, 0xdf, 0x0a, 0xa1, 0x34, 0x62, 0xcc, 0x92, 0xba, 0x77, 0x1a,
+	0xe4, 0xa4, 0xd0, 0x3e, 0x0e, 0x2e, 0xac, 0xa1, 0x7d, 0xa0, 0x35, 0x6e, 0xf1, 0x46, 0x49, 0xf8,
+	0x3b, 0x35, 0x8b, 0xbf, 0xcd, 0x8f, 0x21, 0xab, 0xe2, 0x48, 0x1e, 0x40, 0x3e, 0x9a, 0x66, 0x47,
+	0x65, 0x38, 0x4f, 0x73, 0x51, 0x43, 0xdd, 0x31, 0x7f, 0xd1, 0xa0, 0x28, 0x81, 0x14, 0x5f, 0x23,
+	0xc7, 0xae, 0x1d, 0x1a, 0xee, 0x03, 0xc2, 0xbe, 0x37, 0x27, 0xe3, 0xfe, 0x39, 0xa4, 0xde, 0xe0,
+	0x40, 0x4d, 0x79, 0x75, 0x32, 0x69, 0x1f, 0x07, 0x7b, 0x73, 0x34, 0xc4, 0x6f, 0xcd, 0x43, 0x5a,
+	0xf8, 0x68, 0x9b, 0xbf, 0x69, 0x00, 0xb2, 0x26, 0xe7, 0x91, 0x9c, 0xbd, 0x36, 0x53, 0xba, 0xf7,
+	0xdf, 0x3f, 0x30, 0xa3, 0x61, 0x3d, 0x99, 0x3c, 0xac, 0x71, 0x07, 0xa5, 0xf9, 0x97, 0x0e, 0xb9,
+	0xd8, 0xa2, 0xa4, 0x09, 0xc5, 0x73, 0x3c, 0x71, 0xac, 0x7e, 0xc7, 0xf3, 0x83, 0xc4, 0x69, 0xfc,
+	0x78, 0xac, 0xf8, 0xb7, 0x78, 0xb2, 0x53, 0x3d, 0x8a, 0x05, 0xf6, 0xe6, 0xe8, 0x62, 0x24, 0xd0,
+	0x88, 0xf8, 0x4a, 0xd1, 0xf2, 0xfd, 0xa1, 0xa2, 0x3e, 0x5d, 0xd1, 0xf2, 0xfd, 0x11, 0x45, 0xcb,
+	0xf7, 0x63, 0xc5, 0x23, 0x28, 0x05, 0xdc, 0xea, 0x8a, 0xd7, 0xc8, 0x87, 0x9a, 0xa9, 0x29, 0x4b,
+	0xd0, 0x56, 0x84, 0x84, 0xea, 0x9d, 0x58, 0x24, 0xd6, 0xdd, 0x81, 0x3b, 0xa7, 0xd8, 0x45, 0xce,
+	0xec, 0xa1, 0x6c, 0x7a, 0x4a, 0xc2, 0xf6, 0xe6, 0x68, 0x51, 0x71, 0x94, 0x4a, 0xb8, 0xe7, 0x01,
+	0x72, 0xd7, 0xfc, 0x55, 0x83, 0xe2, 0xfb, 0x6b, 0x43, 0x1e, 0xc1, 0xa2, 0x3c, 0x42, 0x9c, 0x8e,
+	0x40, 0x9b, 0x63, 0xa0, 0xdc, 0xba, 0x10, 0x35, 0xb6, 0x64, 0xdb, 0xad, 0xee, 0x2d, 0x29, 0x41,
+	0xaa, 0xc7, 0x99, 0x7a, 0xb8, 0x85, 0x9f, 0xe6, 0xa6, 0x1c, 0x55, 0x62, 0x7d, 0xc9, 0x2a, 0x2c,
+	0xf4, 0x38, 0xeb, 0x04, 0xe8, 0xfa, 0x6f, 0xc3, 0x13, 0x29, 0x1a, 0x54, 0xa1, 0xc7, 0x59, 0x5b,
+	0x35, 0x99, 0xdf, 0x43, 0x69, 0x74, 0x01, 0xaf, 0x37, 0x99, 0x87, 0x00, 0xea, 0xc0, 0x08, 0x87,
+	0x11, 0x5d, 0x96, 0xf9, 0xa8, 0xe5, 0x90, 0xb3, 0xf0, 0x16, 0x15, 0xec, 0xa7, 0xe8, 0x0c, 0x48,
+	0x53, 0xf9, 0x6d, 0xfe, 0xad, 0xc3, 0x42, 0xf2, 0xd1, 0x41, 0xda, 0x63, 0x2c, 0xf9, 0x6c, 0x8a,
+	0x25, 0x93, 0x22, 0x97, 0x6d, 0xd9, 0x1e, 0x63, 0xcb, 0x67, 0x53, 0x6c, 0x79, 0x85, 0x6a, 0xc2,
+	0x9a, 0xaf, 0xc6, 0x5a, 0xf3, 0xd3, 0xa9, 0xd6, 0x1c, 0x51, 0xfe, 0x8f, 0xed, 0xc9, 0x80, 0x5c,
+	0x5e, 0xa6, 0xd1, 0x97, 0x98, 0x7e, 0x1b, 0x2f, 0x31, 0xf3, 0x50, 0x76, 0x35, 0xb2, 0x76, 0xe1,
+	0x15, 0xda, 0x67, 0x78, 0xde, 0x71, 0x3d, 0x27, 0x7a, 0x46, 0xc5, 0x97, 0xb0, 0xe5, 0xfb, 0x97,
+	0x3b, 0x39, 0x62, 0x78, 0xfe, 0xd2, 0x73, 0x90, 0xe6, 0xfa, 0xea, 0xcb, 0xbc, 0x07, 0x4b, 0x57,
+	0x2d, 0xdd, 0x53, 0xae, 0xce, 0x5a, 0x79, 0x69, 0x92, 0x65, 0xb8, 0xdb, 0xda, 0xab, 0xd2, 0x5a,
+	0xa7, 0xd5, 0xae, 0xb6, 0x6b, 0x9d, 0xfa, 0xc1, 0x51, 0xf5, 0x45, 0x7d, 0xa7, 0x34, 0x37, 0x5a,
+	0x68, 0xd6, 0x0e, 0x76, 0xea, 0x07, 0xbb, 0x25, 0x8d, 0x18, 0xb0, 0x94, 0x2c, 0x54, 0xb7, 0xb7,
+	0x6b, 0xcd, 0x76, 0x6d, 0xa7, 0xa4, 0x8f, 0x56, 0x68, 0xed, 0x9b, 0xda, 0x76, 0x58, 0x49, 0x3d,
+	0x3d, 0x80, 0xfc, 0xf0, 0x9d, 0x40, 0xee, 0x01, 0x89, 0x60, 0xed, 0xef, 0x9a, 0xc9, 0x1e, 0xef,
+	0xc2, 0x9d, 0x44, 0xfb, 0x61, 0xab, 0x46, 0x4b, 0x1a, 0x59, 0x82, 0x52, 0xa2, 0x71, 0x97, 0x36,
+	0x0e, 0x9b, 0x25, 0x7d, 0xab, 0x07, 0x0f, 0x6c, 0xcf, 0x1d, 0x67, 0x99, 0xad, 0x62, 0xbc, 0xe6,
+	0x42, 0xc6, 0xb1, 0xa9, 0xbd, 0x02, 0xcf, 0x76, 0x55, 0xf5, 0x77, 0x3d, 0xb5, 0xdd, 0x6a, 0xfc,
+	0xa1, 0x2f, 0x6f, 0x8b, 0x4d, 0x79, 0x3c, 0x84, 0xec, 0x86, 0xed, 0x96, 0x8f, 0xd6, 0xb7, 0xc2,
+	0xfa, 0x9f, 0xb2, 0x72, 0xac, 0x2a, 0xc7, 0x0d, 0xdb, 0x3d, 0x56, 0x95, 0x93, 0x79, 0xf9, 0x40,
+	0xd9, 0xfc, 0x37, 0x00, 0x00, 0xff, 0xff, 0x79, 0x5a, 0xcc, 0x64, 0x5c, 0x0f, 0x00, 0x00,
 }
